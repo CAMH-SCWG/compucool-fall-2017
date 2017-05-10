@@ -1,15 +1,16 @@
 ---
 title: "Intro to R tutorial"
 author: "Erin W Dickie"
-date: "September 28, 2016"
+date: "May 9, 2017"
 output: html_document
 layout: workshop
 ---
 
-[Return to SCWG Home](https://camh-scwg.github.io/compucool-oct-2016/)
+[Return to SCWG Home](https://camh-scwg.github.io/compucool-may-2017/)
 
 --------
 
+# Introduction to R - with Erin!
 
 Please have these both installed (come early if you need help):
 
@@ -18,17 +19,16 @@ Please have these both installed (come early if you need help):
 
 Also, please install here awesome R packages (again, if you don't know how please come early):
 
-* 'rms' 
-* 'ggplot2'
-* 'dpylr'
+* `rms` 
+* `tidyverse`
 
 --------
 
 Please download the following files
 
 
-1. [messy_demographic.csv](data/messy_demographic.csv) 
-2. [messy_cognitive.csv](data/messy_cognitive.csv)
+1. [messy_demographic.csv](https://raw.githubusercontent.com/CAMH-SCWG/example-party/master/messy_data/messy_demographic.csv)
+2. [messy_cognitive.csv](https://raw.githubusercontent.com/CAMH-SCWG/example-party/master/messy_data/messy_cognitive.csv)
 
 
 ---------
@@ -68,7 +68,7 @@ for this tutorial, we are going to use the packages ggplot, rms and car.
 + Click on these lines to highlight them, then click on **To Source** at the top of the panel
 + This moves the lines we just ran into our script so we can rerun this step tomorrow!
 
-```{r}  
+```{r, message=FALSE, warning=FALSE}
 library(rms)
 library(ggplot2)
 library(dplyr)

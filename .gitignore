@@ -2,4 +2,4 @@ _site/
 .DS_Store
 .Rhistory
 workshops/alldata.csv
-
+workshops/*.nb.html

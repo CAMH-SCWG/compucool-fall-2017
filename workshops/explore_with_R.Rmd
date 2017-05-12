@@ -33,11 +33,9 @@ Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by press
 
 We are also going to make heavy use of the "tidyverse" suite of packages. These packages include:
 
-+ **ggplot2**: for plotting
-  + [ggplot cheat sheet](https://www.rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf)
-+ **dplyr** & **tidyr**: for manipulating dataframes
-  + [data Wrangling cheat sheet](https://www.rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf)
-+ **knitr**: for adding tables to our reports
+* **ggplot2**: for plotting ([ggplot cheat sheet](https://www.rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf))
+* **dplyr** & **tidyr**: for manipulating dataframes ([data Wrangling cheat sheet](https://www.rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf))
+* **knitr**: for adding tables to our reports
 
 For more info on programming with the tidyverse I highly recommend the online book [R for data science](http://r4ds.had.co.nz/) by Garrett Grolemund & Hadley Wickham.
 
@@ -48,8 +46,13 @@ library(readr)
 library(dplyr)
 ```
 ## reading in the data
-
-```{r, warning=FALSE}
+```{r, warning=FALSE, echo=FALSE, message=FALSE}
+data1 <-
+read_csv("data/messy_demographic.csv")
+data2 <- read_csv("data/messy_cognitive.csv")
+data3 <- read_csv("data/messy_genotype.csv")
+```
+```{r, eval=FALSE}
 data1 <-
 read_csv("~/Desktop/messy_demographic.csv")
 data2 <- read_csv("~/Desktop/messy_cognitive.csv")
@@ -132,6 +135,7 @@ CreateTableOne(alldata,
                               "genotype","ethnicity"),
                strata = "dx")
 ```
+
 #### Research Question 1: Is performance on Cognitive Scale One (cog1) associated with Diagnosis (Dx)
 
 To test this statistically, we are going to run an independant samples t-test, using the base `t.test` function.
@@ -168,7 +172,7 @@ Remember "!" means "not"
 alldata %>% 
   filter(!is.na(dx)) %>%
   ggplot(aes(x = dx, y = cog1, fill = dx)) +
-    geom_boxplot(alpha = 0.5) 
+    geom_boxplot() 
 ```
 
 ## Introducing the the dotplot geom
@@ -190,6 +194,7 @@ alldata %>%
          fill = "Diagnosis")        # change dx to Diagnosis in the legend
 
 ```
+
 ## dplyr can be a very useful tool (for pretty tables)
 
 In the section below we use two powerful tools from dplyr:
@@ -216,6 +221,7 @@ table_2 <- alldata %>%
 library(knitr)
 kable(table_2)
 ```
+
 ## use forcats to label risk_carriers
 
 When working with a genotype of interest, it's very common group participants into "carriers" and "non-carriers" of a risk-allele. In this dataset, our risk allele is the "G" genotype. We will create a new "risk_carrier" variable by combining levels of the genotype variable.
@@ -277,6 +283,7 @@ alldata %>%
     geom_smooth(method = "lm") +
     facet_grid(dx~sex)
 ```
+
 ## BONUS section - gather cognitive scores into one plot
 
 One things we want to do sometimes is to stack data from multiple columns in one column. The reason why this is useful, will hopefully become apparent in the next example.

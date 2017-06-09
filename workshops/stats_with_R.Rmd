@@ -1,11 +1,11 @@
 ---
 title: "Stats with R tutorial"
 author: "Erin W Dickie"
-date: "September 11, 2016"
+date: "May 16, 2016"
 output: html_document
 ---
 
-[Return to SCWG Home](https://camh-scwg.github.io/compucool-oct-2016/)
+[Return to SCWG Home](https://camh-scwg.github.io/compucool-may-2017/)
 
 -----
 
@@ -25,59 +25,350 @@ If you haven't already installed these:
 
 Load the packages
 
-```{r}
-library(rms)
+```{r, message=FALSE}
 library(ggplot2)
-library(car)
 library(dplyr)
+library(tidyr)
+library(broom)
+library(readr)
 ```
 
-The data should be merged and ready to go from day 1. If not, here's the code for it:
+
+#### p.s. today we are going to use the "pipe" `%>%`
+
+`%>%` is the pipe 
+The pipe takes the data from the left of if and feeds it to the function on the next line. Below are two ways for writing the same command.
+
+```{r, eval = FALSE}
+select(alldata, cog1:cog3)
+
+alldata %>% 
+  select(cog1:cog3)
+```
+
+#### let's read in the data
+
+*Note: we're going to use `read_csv()` from the `readr` package instead of base R's read.csv because it is a little more robust.*
+
+
+
 
 ```{r eval = FALSE}
-data1 <- read.csv("~/Downloads/messy_demographic.csv")  # put in the location of the downloaded data file 1
-data2 <- read.csv("~/Downloads/messy_cognitive.csv")  # put in the location of the downloaded data file 2
-data3 <- read.csv("~/Downloads/messy_genotype.csv")
+messy_demographic <- read_csv("~/Downloads/messy_demographic.csv")  # put in the location of the downloaded data file 1
+messy_cognitive <- read_csv("~/Downloads/messy_cognitive.csv")  # put in the location of the downloaded data file 2
+data3 <- read_csv("~/Downloads/messy_genotype.csv")
 ```
 ```{r echo = FALSE}
-data1 <- read.csv("data/messy_demographic.csv")  # put in the location of the downloaded data file 1
-data2 <- read.csv("data/messy_cognitive.csv")  # put in the location of the downloaded data file 2
-data3 <- read.csv("data/messy_genotype.csv")
+messy_demographic <- read_csv("data/messy_demographic.csv")  # put in the location of the downloaded data file 1
+messy_cognitive <- read_csv("data/messy_cognitive.csv")  # put in the location of the downloaded data file 2
+messy_genotype <- read_csv("data/messy_genotype.csv")
 ```
+# Running Intro to R commands
+
+The data should be merged and ready to go from day 1. If not, here's the code for it:
+Copied from [here](https://camh-scwg.github.io/compucool-may-2017/workshops/stats_with_R)
+
+```{r}
+## I'm using require, it's actually pretty much the same thing as "library"
+require(dplyr)
+require(stringr)
+require(readr)
+
+## we know that we need we have a same missing value issues in all three dataframes
+## to avoid copying and pasting 3 times let's set them to a function
+recode_missing <- function(df) {
+  df[df==""] <- NA
+  df[df=="missing"] <- NA
+  df[df=="9999"] <- NA
+  df[df==9999] <- NA
+  return(df)
+}
+
+## pipeping messy demographic to the function we made
+## then defining the factors inside a call to mutate
+## note I use readr::parse_number(), which less error prone version of as.numeric() 
+clean_demographic <- messy_demographic %>%
+  recode_missing() %>%
+  mutate(age = parse_number(age),
+         ethnicity = factor(ethnicity,
+                            levels=c("Cauc","AA","As","In","Other")),
+         sex = factor(sex, levels = c(0,1),
+                            labels = c("Male","Female")),
+         dx = factor(dx, levels=c(0,1), 
+                           labels=c("Control","Case")))
+
+## recoding missing values in using out hand made recode_missing function
+## then I use dplyr mutate_at to convert all 3 cog vars to a number
+clean_cognitive <- messy_cognitive %>%
+  recode_missing() %>%
+  mutate_at(vars(cog1:cog3), funs(parse_number(.)))
+
+## recode and set genotype to a factor
+clean_genotype <- messy_genotype %>%
+  recode_missing() %>%
+  mutate(genotype = factor(genotype, 
+                           levels=c(0,1,2), 
+                           labels=c("AA","AG","GG")))
+
+## use stringr to make the subject IDs match
+## use dplyr's inner_join to put all three together
+## use select to remove the extra column and put "subID" as the first column
+alldata <- clean_demographic %>%
+  mutate(subID = str_replace(subject_ID, "SUB_", "subject")) %>%
+  inner_join(clean_cognitive, by = "subID") %>%
+  inner_join(clean_genotype, by = "subID") %>%
+  select(subID, everything(), -subject_ID)
+
+## remove the intermediate data from your workspace
+rm(messy_demographic, messy_cognitive, messy_genotype,
+   clean_genotype, clean_cognitive, clean_demographic)
+```
+
+## A very fast stats refresher!!
+
+## what stat function do I need??
+
+For today, we are going to focus on what are called "parametric" statistics. We can spend a semester (and many people do) describing the uses of different statistical tests. However today, to pick the "best" statistical test there are two real questions:
+
+1. What type of data is my dependant variable ("y")?
+2. What type of data is my independant/predictor variable ("x")?
+
+|               |        |**Dependant Variable (y)**                          |
+|---------------|--------|----------------------------|-----------------------|
+|               |        |*Factor*                    |*Numeric*              |
+|**Independant (x)**| *Factor*    | Chi-Squared `chisq.test(ftable(y~x))`| t-test`t.test(y~x)` OR ANOVA `anova(lm(y~x))`|
+|                   |*Numeric*    |Logistic Regression `glm(y~x,family=binomial())` | Correlation`cor.test(y~x)` OR Regression `lm(y ~ x)` |
+|                   |*Combination (or multiple)* |Logistic Regression `glm(y~x1 + x2,family=binomial())`| Multiple Regression `lm(y ~ x1 + x2)`|
+
+This table is generally works, UNLESS:
+
+1. Your data is not normally distributed (we will test for that later...).
+    + is this is an issue..you will need to enter the land of non-parametric statistics
+2. Your data is not "independant", in other words you have a "repeated-measures design"
+    + you might need a *paired t.test* or *repeated measures ANOVA*
+3. You have more than one dependant variable. 
+    + Then you need to enter the realm of multivariate statistics.. 
+
+There are tools for all of this in R.  But I will not go into them during this tutorial
+
+## most of what we want to do, we can do with the linear model (`lm`)
+
+The linear model function in R, like many stats functions in R, uses *formula notation*, where you describe you dependant and independant variables, separated by a tilda `~`.
+
+Let's take an example where we want to predict the scores on cognitive scale 2 using our age variable.
+
+In the next chuck we create a *linear model fit* object. An then call summary on that object.
+
+```{r}
+fit_cog2_age <-lm(cog2 ~ age, data = alldata) # creates lm "fit" object
+summary(fit_cog2_age)                         # prints a summary report of the fit
+```
+
+## getting stuff out of our summary
+
+### augment grabs residuals and predicated values
 
 
 ```{r}
-data1[data1==""] <- NA
-data1[data1=="missing"] <- NA
-data1[data1=="9999"] <- NA
+cogbyage_aug <- alldata %>%
+  do(augment(lm(cog2~age,data = .)))
 
-data1$age <- as.numeric(as.character(data1$age))
-data1$ethnicity <- factor(data1$ethnicity,levels=c("Cauc","AA","As","In","Other"))
-data1$sex <- factor(data1$sex, levels=c(0,1), labels=c("Male","Female"))
-data1$dx <- factor(data1$dx, levels=c(0,1), labels=c("Control","Case"))
-
-data2[data2==""] <- NA
-data2[data2=="missing"] <- NA
-data2[data2=="9999"] <- NA
-data2$cog1 <- as.numeric(as.character(data2$cog1))
-data2$cog2 <- as.numeric(as.character(data2$cog2))
-data2$cog3 <- as.numeric(as.character(data2$cog3))
-data2$subID <- gsub(data2$subID,pattern="subject",replacement="SUB_")
-
-data3[data3==""] <- NA
-data3[data3=="missing"] <- NA
-data3[data3=="9999"] <- NA
-data3$genotype <- factor(data3$genotype, levels=c(0,1,2), labels=c("AA","AG","GG"))
-data3$subID <- gsub(data3$subID,pattern="subject",replacement="SUB_")
-
-alldata <- merge(data1,data2,by.x="subject_ID",by.y="subID")
-alldata <- merge(alldata,data3,by.x="subject_ID",by.y="subID")
+head(cogbyage_aug)
 ```
 
-# HERE WE GO WITH Statistics!
+### tidy grabs to middle table (beta's and t-stats)
+
+```{r}
+cogbyage_tidy <- alldata %>%
+  do(tidy(lm(cog2~age,data = .)))
+
+cogbyage_tidy
+```
+
+### glance grabs to full model stats 
+
+```{r}
+cogbyage_glance <- alldata %>%
+  do(glance(lm(cog2~age,data = .)))
+
+cogbyage_glance
+```
+
+### now that things are nicely organized we can built tables for our publications, compare across models, and print results to our report 
+
+```{r}
+my_t_stat <- cogbyage_tidy %>%
+  filter(term == "age") %>%
+  select(statistic) %>%
+  round(.,2) ## round to 2 decimal places
+
+print(my_t_stat)
+```
+
+#### Printing a result to our report
+
+The following line:
+We observe a significant relationship between age adn cognitive scale 2 (t = `r my_t_stat`, p = `r cogbyage_tidy$p.value[2]`)
+
+was written in markdown as:
+
+```
+We observe a significant relationship between age adn cognitive scale 2 (t = `r my_t_stat`, p = `r cogbyage_tidy$p.value[2]`)
+```
+
+## Using ggplot to plot a histogram of cognition score 1
+
+```{r}
+ggplot(alldata, aes(x=cog1)) + geom_histogram()
+```
+
+## Using a combination of "gather" and ggplot to plot all three scores in one plot
+
+```{r}
+alldata %>%
+  gather(cognitive_scale, cognitive_score, 
+         cog1:cog3) %>%
+  ggplot(aes(x = cognitive_score)) +
+    geom_histogram() +
+    facet_wrap(~cognitive_scale, scales = "free")
+```
+
+### Transforming variables to normality
+
+From the histogram above.. It looks like `cog3` is not normally distributed. This is a problem because it violates "the assumption of normally", and therefore parametric tests (i.e. the linear model) should not be run in this case.
+
+One solution to this problem is to transform this variable into normally distributed variables, and then do the stats on those.
+
+Let's use `dplyr`'s `mutate` function to calculate a log (i.e. log10) and square-root transform (`sqrt`).
+
+```{r}
+alldata <- alldata %>%
+  mutate(cog3_log  = log(cog3),
+         cog3_sqrt = sqrt(cog3))
+```
+
+### Let's plot histograms of these new values
+
+```{r}
+alldata %>%
+  gather(cognitive_scale, cognitive_score, 
+         cog3_log, cog3_sqrt) %>%
+  ggplot(aes(x = cognitive_score)) +
+    geom_histogram() +
+    facet_wrap(~cognitive_scale, scales = "free")
+```
+
+### The people behind the `car` library decided to use their computer's to find the perfect transform!
+
+The function `powerTransform` magically finds the perfect transform!
 
 
-## RESEARCH AIM 4: Linear Regression
+
+```{r}
+library(car)
+# calculate the best exponent using powerTransform:
+pT <- powerTransform(alldata$cog3)
+# apply the power transform and save the result to a new variable
+alldata$cog3_powerT <- alldata$cog3^pT$lambda ## note ^ is exponent in r
+```
+
+Using `powerTransform` is a little tricky (it requires two steps). When things get tricky in R, it's nice to wrap what you want to do inside a function. That way, you can call the function instead of remembering all the steps next time you want to do something!
+
+```{r}
+## run the power transform, return the transformed variable
+## where x is a vector of values
+get_pT <- function(x) {
+ pT <- x^powerTransform(x)$lambda
+ return(pT)
+}
+
+alldata <- alldata %>%
+  mutate(cog3_pT = get_pT(cog3))
+
+ggplot(alldata, aes(x=cog3_pT)) + geom_histogram()
+```
+
+## Recodeding our genotype into risk-allele carriers vs non-carriers
+
+```{r}
+summary(alldata$genotype)
+```
+
+```{r}
+library(forcats)
+
+alldata <- alldata %>%
+  mutate(risk_carrier = fct_recode(genotype,
+                                   carrier = "GG",
+                                   carrier = "AG",
+                                   non_carrier = "AA"))
+```
+
+
+### fitting our data with an age by risk-carrier interaction
+
+The concept of statistical interaction goes by many names and has many definitions.  Simply this is the concept that the effect of one variable changes depending on the value of another variable. 
+
+Interaction is indicated in R formula syntax with a ":" or `*`, depending on if you want to automatically include the main effects of your interacting variables or not. As a general rule, always use `*`.
+
+```{r}
+fit2 <- lm(cog1 ~ age*risk_carrier, data = alldata)
+summary(fit2)
+```
+
+```{r}
+alldata %>%
+  filter(!is.na(risk_carrier)) %>%
+ggplot(aes(x = age, y = cog1, color = risk_carrier)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+### Plotting all three cognitve variables at once!
+
+```{r, fig.height=4, fig.width=10}
+alldata %>%
+  gather(cognitive_scale, cognitive_score, 
+         cog1, cog2, cog3_pT) %>%
+  filter(!is.na(risk_carrier)) %>%
+  ggplot(aes(y = cognitive_score, x = age, color = risk_carrier)) +
+    geom_point() +
+    geom_smooth(method = "lm") +
+    facet_wrap(~cognitive_scale, scales = "free")
+```
+
+### Running our linear model on all three cognitive variables at once!
+
+```{r}
+lm_results <- alldata %>%
+  gather(cognitive_scale, cognitive_score, 
+         cog1, cog2, cog3_pT) %>%
+  filter(!is.na(risk_carrier)) %>%
+  group_by(cognitive_scale) %>%
+  do(tidy(lm(cognitive_score ~ age*risk_carrier, data = .)))
+
+library(knitr)
+kable(lm_results %>%
+  select(cognitive_scale, term, statistic, p.value) %>%
+    arrange(p.value))
+```
+
+## use p.adjust to correct for multiple comparisons
+
+```{r}
+age_effects <- lm_results %>%
+  filter(term == "age")
+
+age_effects$p.FDR <- p.adjust(age_effects$p.value, method = "fdr")
+
+kable(age_effects)
+```
+
+# BONUS SECTION
+
+When you want more detailed info out of your models. The `rms` library can be very useful.
+
+
 #### total_behaviour_score ~ age 
  
 Calculate a composite variable by combining multiple variables
@@ -91,6 +382,7 @@ alldata$totalcog <- (alldata$cog1 + alldata$cog3) / alldata$cog2
 Simple linear regression (two ways: base package and rms)
 
 ```{r}
+library(rms)
 lm.base <- lm(data=alldata, totalcog ~ age)
 lm.rms <- ols(data=alldata, totalcog ~ age)
 ```
@@ -114,122 +406,21 @@ summary(lm.rms)
 anova(lm.rms)
 ```
 
-## Visualize results using ggplot2
-
-```{r}
-ggplot(data=alldata, aes(y=totalcog, x=age)) + 
-	geom_point() + 
-	geom_smooth(method=lm)
-```
-
-#### Challenge 1: add a title and change the axis labels
-
 Visualize predicted results using rms
 ```{r}
 plot(Predict(lm.rms))
 ```
 
-Check regression assumption of normal residuals
-
-```{r}
-hist(resid(lm.rms))
-```
-
-They are not normal! We can look at this formally also:
-```{r}
-shapiro.test(resid(lm.rms)) 
-```
-## Let's look at and normalize our outcome...
-
-# two ways of looking at it (base and ggplot2):
-
-```{r}
-ggplot(data=alldata, aes(x=totalcog)) + geom_histogram() 
-```
-
-Let's try transforming our variable using log and sqrt transformations to see if it helps:
-
-```{r}
-alldata$totalcog_log <- log(alldata$totalcog)
-alldata$totalcog_sqrt <- sqrt(alldata$totalcog)
-```
-
-
-## Here's a super neat way to optimize power transformations:
-
-The powerTransform function will calculate the best transform for your data.
-It saves the best exponent as the value "lambda"
-
-```{r}
-# calculate the best exponent using powerTransform:
-pT <- powerTransform(alldata$totalcog)
-# apply the power transform and save the result to a new variable
-alldata$totalcog_pT <- alldata$totalcog^pT$lambda ## note ^ is exponent in r
-```
-
-### let's try our regression again with the transformed outcome (using rms):
-
-Note: if we want to use summary() on our ols() object we will have to redefine datadist because we created new variables that were not in the original datadist object
-
-```{r}
-dd.alldata <- datadist(alldata)
-options(datadist="dd.alldata")
-```
-#### Challenge 2: run a new regression (using ols) with the your new transformed cognitive score as the dependant variable
-
-#### Challenge 3: use ggplot to make a new plot of this effect
-
------------------------
-
-## RESEARCH AIM 5: total_behaviour_score ~ age + sex + genotype (multiple linear regression)
+## ols gets more powerful as the model get's more complicated
 
 This is were we start to add covariates and do multiple regression
 
 ```{r}
-lm3 <- ols(data=alldata, totalcog_pT ~ age + genotype + sex)
-anova(lm3)
-summary(lm3)
-```
-
-We can easily visualise the effects of each variable on the outcome using rms, but this feature does not give us plot points and is not very flexible:
-
-```{r}
-plot(Predict(lm3))
-```
-
-Now let's say we want to recode out genotype variable so that we have only 2 groups: those who "carry" the G allele, and those who do not carry it:
-
-````{r}
-alldata$riskcarrier[alldata$genotype=="AG" | alldata$genotype=="GG"] <- "carrier"
-alldata$riskcarrier[alldata$genotype=="AA"] <- "non-carrier"
-alldata$riskcarrier <- as.factor(alldata$riskcarrier)
-```
-
-No we can re-run the model:
-
-```{r}
-dd.alldata <- datadist(alldata)
-options(datadist="dd.alldata")
-lm3 <- ols(data=alldata, totalcog_pT ~ age + sex + riskcarrier)
+lm3 <- ols(data=alldata, cog1 ~ age*risk_carrier + sex )
 lm3
 anova(lm3)
 summary(lm3)
 ```
-
-## RESEARCH AIM 5: Interaction!
-#### total_behaviour_score ~ age*riskcarrier + sex 
-
-The concept of statistical interaction goes by many names and has many definitions.  Simply this is the concept that the effect of one variable changes depending on the value of another variable. 
-
-Interaction is indicated in R formula syntax with a ":" or `*`, depending on if you want to automatically include the main effects of your interacting variables or not. As a general rule, always use `*`.
-
-```{r}
-lm4 <- lm(totalcog_pT ~ sex + riskcarrier*age, data=alldata)
-summary(lm4)
-anova(lm4)
-```
-
----- 
 
 
 # BONUS SECTION - the "right" way to plot....
@@ -243,45 +434,9 @@ To visualize a given effect more informatively, we want to caculate the residual
 For genotype we want a boxplot of model residuals:
 
 ```{r}
-lm3.plot <- ols(data=alldata, totalcog_pT ~ genotype + age)
+lm3.plot <- ols(data=alldata, cog1 ~ genotype + age)
 
 ggplot(data=alldata, aes(y=resid(lm3.plot), x=sex)) + 
   geom_boxplot()
 ```
 
-See it thinks NA is a value! That is because the ols() object stores NA input values
-as NA residuals, and ggplot2 sees these as another level to plot. Fix by re-running
-the model to exclude missing observations and plotting the data subset where NAs are excluded:
-
-```{r}
-lm3.plot <- ols(data=subset(alldata,sex!="NA"), totalcog_pT ~ age + genotype)
-ggplot(data=subset(alldata,sex!="NA"), aes(y=resid(lm3.plot), x=sex)) + 
-  geom_boxplot()
-```
-
-Ror age we want a scatterplot of residuals. same subsetting principle applies:
-
-```{r}
-lm3.plot <- ols(data=subset(alldata,age!="NA"), totalcog_pT ~ genotype + sex)
-ggplot(data=subset(alldata,age!="NA"), aes(y=resid(lm3.plot), x=age)) + 
-  geom_point() + 
-  geom_smooth(method=lm)
-```
-
-**CONCEPT**: notice that if we include age in our model and plot age on the x-axis in our residual plot, the effect is lost - we have modeled it out:
-
-```{r}
-lm3.plot <- ols(data=alldata, totalcog_pT ~ genotype + sex + age)
-ggplot(data=alldata, aes(y=resid(lm3.plot), x=age)) + 
-  geom_point() + 
-  geom_smooth(method=lm)
-```
-
-To plot the interaction we just tell ggplo2 to plot the regression lines for ou
-
-```{r}
-lm4.plot <- ols(data=subset(alldata,age!="NA" & riskcarrier!="NA"), totalcog_pT ~ sex)
-ggplot(data=subset(alldata,age!="NA" & riskcarrier!="NA"), aes(y=resid(lm4.plot), x=age, col=riskcarrier)) + 
-  geom_point() + 
-  geom_smooth(method=lm)
-```

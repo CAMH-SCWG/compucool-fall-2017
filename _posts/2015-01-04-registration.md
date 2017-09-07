@@ -19,7 +19,7 @@ _Please sign up with a CAMH email address, so that we know who you are!._
 
 <br>
 
-<a href="https://www.eventbrite.ca/e/scientific-computing-fundamentals-for-camh-researchers-may-2017-tickets-33593988524" class="button">Register</a>
+<a href="https://www.eventbrite.ca/e/scientific-computing-fundamentals-for-camh-researchers-september-2017-tickets-36517128715" class="button">Register</a>
 
 </div>
 <div class="card-footer"></div>
@@ -35,7 +35,7 @@ All others are welcome to join us for $15-30 per course.
 <br>
 <br>
 
-<a href="https://www.eventbrite.ca/e/scientific-computing-fundamentals-may-2017-tickets-33599080755" class="button">Register & Pay</a>
+<a href="https://www.eventbrite.ca/e/scientific-computing-fundamentals-september-2017-tickets-37663841564" class="button">Register & Pay</a>
 
 </div>
 <div class="card-footer"></div>

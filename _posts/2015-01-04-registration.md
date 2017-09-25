@@ -32,6 +32,8 @@ _Please sign up with a CAMH email address, so that we know who you are!._
 <div class="card-body" markdown="1">
 
 All others are welcome to join us for $15-30 per course. 
+
+We've capped the cost to external users at $100 for unlimited courses. Please email scwg@camh.ca for more details.
 <br>
 <br>
 

@@ -12,14 +12,16 @@ layout: workshop
 ## Setting up.. You have three options:
 
 ### Option 1: Use the SCC jupyter hub with a guest account
-1. log into jupyter hub (https://jupyter.camh.ca) **This link will only within the CAMH network
+1. log into jupyter hub [https://jupyter.camh.ca](https://jupyter.camh.ca) **This link will only within the CAMH network
 2. Naviate to `~/nibabel_nilearn_tutorial_2017/notebook` folder and open ss2017_16mripython.ipynb
  + make sure the "Kernel" in the top right is "Python (3.6_nilearn_01)"
  + you can change the from the top Menu **Kernel**->**Change Kernel**
 
+-----------------------------------------------
+
 ### Option 2: Use the SCC jupyter hub with your own account:
 
-1. log into jupyter hub (https://jupyter.camh.ca) **This link will only within the CAMH network
+1. log into jupyter hub [https://jupyter.camh.ca](https://jupyter.camh.ca) **This link will only within the CAMH network**
 2. click on **New**->**Terminal** (top right hand side of home)
 
 inside the terminal
@@ -39,6 +41,33 @@ source deactivate
  + make sure the "Kernel" in the top right is "Python (3.6_nilearn_01)"
  + you can change the from the top Menu **Kernel**->**Change Kernel**
  
+------------------------------
+
+## Option 3: Work on your own laptop 
+
+**recommended only for those familiar with setting up conda environments**
+
+1. Clone the repo:
+```sh
+git clone https://github.com/edickie/nibabel_nilearn_tutorial_2017.git
+```
+2. build a conda environment with nilearn and seaborn in it..
+```sh
+conda create -n mripython3.6 python=3.6
+source activate mripython3.6
+conda install scikit-learn
+conda install seaborn
+pip install nibabel
+pip install -U nilearn
+conda install docopt
+conda install jupyter
+```
+
+3. Inside jupyter, naviagte to the notebook and open it:
+ + nibabel_nilearn_tutorial_2017/notebook/ss2017_16mripython.ipynb
+ + change the paths at the top of the notebook to places that will work in you laptop...
+ 
+------------------------------------------------------------------------------
 ## Python Packages from today
 
 + **Nilearn** [webpage](https://nilearn.github.io/index.html)
